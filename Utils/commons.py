@@ -38,8 +38,8 @@ parse_version = lambda version: tuple(map(int, (version.split('.') + ['0', '0'])
 class ExitException(Exception):
     '''
     Custom exception which forces UDB to exit. Requires status code as argument.
-    - =0 means direct exit without prompting for new session.
-    - >0 prompts for new session.
+    - `=0` means direct exit without prompting for new session.
+    - `!=0` prompts for new session.
     '''
     pass
 
@@ -154,6 +154,15 @@ def exec_os_cmd(cmd):
     if rc != 0:
         raise Exception(f"Error occured: {std_err}")
     return msg
+
+def get_ffmpeg_version():
+    '''
+    Get ffmpeg version. Return as a tuple of integers. E.g., (4, 3, 1)
+    '''
+    out = exec_os_cmd('ffmpeg -version')
+    match = re.search(r"ffmpeg version ([^\s]+)", out)
+    version = match.group(1) if match else 'unknown'
+    return tuple(map(int, re.findall(r"\d+", version)[:3]))
 
 # display seconds in hh mm ss format
 def pretty_time(sec: int, fmt='hh:mm:ss'):

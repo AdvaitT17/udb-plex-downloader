@@ -8,12 +8,13 @@ import traceback
 
 # Note: For optimization, custom modules are imported as required
 from Utils.commons import colprint_init, colprint, PRINT_THEMES, ExitException
-from Utils.commons import create_logger, load_yaml, pretty_time, strip_ansi, threaded, delete_old_logs
+from Utils.commons import create_logger, load_yaml, pretty_time, strip_ansi, threaded, delete_old_logs, get_ffmpeg_version
 from Utils.commons import VersionManager
 
 
 ACTIVE_CLIENTS = ['Anime (Animepahe)', 'Anime, Drama, Movies & TV Shows (Kisskh)']
 HIDDEN_CLIENTS = []       # obsolete clients
+VALID_FFMPEG_VERSION = (7, 1, 1)  # minimum ffmpeg version required
 get_current_time = lambda fmt='%F %T': datetime.now().strftime(fmt)
 
 def get_client():
@@ -373,7 +374,7 @@ if __name__ == '__main__':
         if display_version:
             version_mngr.display_changelog()
             raise ExitException(0)
-
+        
         # load config from yaml to dict using yaml
         config = load_yaml(config_file)
         downloader_config = config['DownloaderConfig']
@@ -389,6 +390,17 @@ if __name__ == '__main__':
 
         # remove older log files
         delete_old_logs(config['LoggerConfig']['log_dir'], config['LoggerConfig'].get('log_retention_days', 7), config['LoggerConfig'].get('log_backup_count', 3))
+
+        # check if ffmpeg is installed and version is valid
+        ffmpeg_version = get_ffmpeg_version()
+        if not ffmpeg_version:
+            colprint('error', 'ffmpeg is not installed or not found in PATH! Please install ffmpeg to proceed.')
+            raise ExitException(0)
+        elif ffmpeg_version < VALID_FFMPEG_VERSION:
+            logger.error(f'Please update ffmpeg to version {".".join(map(str, VALID_FFMPEG_VERSION))} or higher! Current version: {".".join(map(str, ffmpeg_version))}')
+            raise ExitException(0)
+        else:
+            logger.debug(f'ffmpeg version found: {".".join(map(str, ffmpeg_version))}')
 
         # get series type
         if show_hidden_clients: ACTIVE_CLIENTS.extend(HIDDEN_CLIENTS)
