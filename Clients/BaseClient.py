@@ -46,6 +46,11 @@ class BaseClient():
         self.logger = logging.getLogger()
         # re-usable lambda functions
         self._regex_extract = lambda rgx, txt, grp: re.search(rgx, txt).group(grp) if re.search(rgx, txt) else False
+        self._normalize_url = lambda url, base_url: (
+            url if url.startswith('http') else
+            f"{urlparse(base_url).scheme}://{urlparse(base_url).netloc}{url}" if url.startswith('/') else
+            f"{base_url}/{url}"
+        )
 
     def _update_udb_dict(self, parent_key, child_dict):
         if parent_key in self.udb_episode_dict:
@@ -212,7 +217,6 @@ class BaseClient():
         # self.logger.debug(f'{master_m3u8_data = }')
 
         _regex_list = lambda data, rgx, grp: [ url.group(grp) for url in re.finditer(rgx, data) ]
-        _full_link = lambda link: link if link.startswith('http') else base_url + '/' + link
         resolutions = _regex_list(master_m3u8_data, r'RESOLUTION=(\d+x\d+)', 1)
         resolution_names = _regex_list(master_m3u8_data, 'NAME="(.*)"', 1)
         if len(resolution_names) == 0:
@@ -242,12 +246,12 @@ class BaseClient():
             return m3u8_links
 
         # calculate duration from any resolution, as it is same for all resolutions
-        temp_link = _full_link(resolution_links[0]) if resolution_links else master_m3u8_link
+        temp_link = self._normalize_url(resolution_links[0], base_url) if resolution_links else master_m3u8_link
         duration = pretty_time(self._get_video_metadata(temp_link, 'hls', referer)[0])
 
         for _res, _pixels, _link in zip(resolution_names, resolutions, resolution_links):
             # prepend base url if it is relative url
-            m3u8_link = _full_link(_link)
+            m3u8_link = self._normalize_url(_link, base_url)
             m3u8_links[_res.replace('p','')] = {
                 'resolution_size': _pixels,
                 'downloadLink': m3u8_link,
@@ -314,8 +318,7 @@ class BaseClient():
             m3u8_data = self._send_request(m3u8_link, referer=referer)
             # extract ts segment urls. same as in HLS downloader
             base_url = '/'.join(m3u8_link.split('/')[:-1])
-            normalize_url = lambda url, base_url: (url if url.startswith('http') else f'{base_url}/{url}')
-            urls = [ normalize_url(url.group(0), base_url) for url in re.finditer("^(?!#).+$", m3u8_data, re.MULTILINE) ]
+            urls = [ self._normalize_url(url.group(0), base_url) for url in re.finditer("^(?!#).+$", m3u8_data, re.MULTILINE) ]
 
             # Logic for 'approx' quality: find content size of a few segments and multiply the average with number of segments
             tgt_len = len(urls) * self.hls_size_accuracy // 100

@@ -1,5 +1,9 @@
 # Changelog
 
+## Version 2.15.0 [2026-01-05]
+- Added check for ffmpeg and minimum version requirement.
+- KissKhClient: Fix #73: Bug while loading domain of HLS Child links.
+
 ## Version 2.14.9 [2025-09-19]
 - AnimePaheClient: Updated domain.
 - KissKhClient: Updated domain.
