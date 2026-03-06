@@ -1,8 +1,11 @@
 # Changelog
 
-## Version 2.15.0 [2026-01-05]
+## Version 2.15.1 [2026-03-06]
+- Akemashita Omedato! HNY 2026!
 - Added check for ffmpeg and minimum version requirement.
 - KissKhClient: Fix #73: Bug while loading domain of HLS Child links.
+- Added new CLI option `-D` or `--debug` to enable debug logging directly from the CLI. This overrides the setting in the configuration file.
+- Fix #80: Update the git url in the backend for changelog info.
 
 ## Version 2.14.9 [2025-09-19]
 - AnimePaheClient: Updated domain.

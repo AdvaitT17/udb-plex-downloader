@@ -84,8 +84,8 @@ class VersionManager():
         '''
         latest_changelog = {}
         try:
-            response = requests.get('https://github.com/Prudhvi-pln/udb/blob/main/CHANGELOG.md?plain=1', headers={'Accept': 'application/json'}).json()['payload']['blob']['rawLines']
-            latest_changelog = self._convert_md_to_json(response)
+            response = requests.get('https://raw.githubusercontent.com/Prudhvi-pln/udb/main/CHANGELOG.md').text
+            latest_changelog = self._convert_md_to_json(response.splitlines())
         except Exception as e:
             pass
 

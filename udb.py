@@ -313,6 +313,7 @@ if __name__ == '__main__':
         parser.add_argument('-c', '--conf', default='config_udb.yaml',
                             help='configuration file for UDB client (default: config_udb.yaml)')
         parser.add_argument('-H', '--hidden', default=False, action='store_true', help='show hidden clients')
+        parser.add_argument('-D', '--debug', default=False, action='store_true', help='enable debug logging')
         parser.add_argument('-l', '--log-file', help='custom file name for logging (default: udb_{YYYYMMDDHHMMSS}.log)')
         parser.add_argument('-v', '--version', default=False, action='store_true', help='display current version of UDB')
         parser.add_argument('-s', '--series-type', type=int, help='type of series')
@@ -331,6 +332,7 @@ if __name__ == '__main__':
         args = parser.parse_args()
         config_file = args.conf
         show_hidden_clients = args.hidden
+        enable_debug_logging = args.debug
         log_file_name = args.log_file
         # set the log_file_name
         if log_file_name is None:
@@ -382,6 +384,7 @@ if __name__ == '__main__':
 
         # create logger
         config['LoggerConfig']['log_file_name'] = log_file_name
+        if enable_debug_logging: config['LoggerConfig']['log_level'] = 'DEBUG'
         # print(f'Current log: {log_file_name}')
         logger = create_logger(**config['LoggerConfig'])
         logger.info(f'-------------------------------- NEW UDB INSTANCE v{__version__} --------------------------------')
