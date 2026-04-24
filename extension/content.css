@@ -1,0 +1,115 @@
+/* Floating action button for kisskh pages. */
+.udb-trigger-fab {
+  position: fixed !important;
+  right: 20px;
+  bottom: 20px;
+  z-index: 2147483647;
+  background: #e50914;
+  color: #fff !important;
+  border: none;
+  border-radius: 28px;
+  padding: 12px 18px;
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-size: 14px;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.45);
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  transition: transform 0.12s ease, background 0.15s ease;
+}
+
+.udb-trigger-fab:hover:not(:disabled) {
+  background: #ff2b36;
+  transform: translateY(-1px);
+}
+
+.udb-trigger-fab:disabled {
+  opacity: 0.7;
+  cursor: progress;
+}
+
+.udb-trigger-fab-status {
+  position: fixed !important;
+  right: 20px;
+  bottom: 72px;
+  z-index: 2147483647;
+  background: rgba(30, 30, 30, 0.95);
+  color: #fff;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-family: system-ui, sans-serif;
+  font-size: 13px;
+  max-width: 320px;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.35);
+  pointer-events: none;
+}
+
+.udb-trigger-fab-status:empty { display: none; }
+.udb-trigger-fab-status.pending { border-left: 3px solid #ffc107; }
+.udb-trigger-fab-status.ok      { border-left: 3px solid #4caf50; }
+.udb-trigger-fab-status.err     { border-left: 3px solid #ff5252; }
+
+/* Inline year-prompt shown when the content script can't scrape a release
+   year from the page. Positioned near the FAB. */
+.udb-trigger-year-prompt {
+  position: fixed !important;
+  right: 20px;
+  bottom: 72px;
+  z-index: 2147483647;
+  background: rgba(25, 25, 25, 0.98);
+  color: #fff;
+  padding: 12px 14px;
+  border-radius: 10px;
+  font-family: system-ui, -apple-system, "Segoe UI", sans-serif;
+  font-size: 13px;
+  max-width: 340px;
+  box-shadow: 0 6px 22px rgba(0, 0, 0, 0.5);
+  border-left: 3px solid #ffc107;
+}
+.udb-trigger-year-prompt-label {
+  margin-bottom: 8px;
+  line-height: 1.4;
+}
+.udb-trigger-year-prompt-label b {
+  color: #ffd54f;
+  font-weight: 700;
+}
+.udb-trigger-year-prompt-label span {
+  color: #bdbdbd;
+  font-size: 12px;
+}
+.udb-trigger-year-prompt-row {
+  display: flex;
+  gap: 6px;
+  align-items: center;
+}
+.udb-trigger-year-prompt input {
+  flex: 1;
+  min-width: 0;
+  background: #111;
+  color: #fff;
+  border: 1px solid #444;
+  border-radius: 6px;
+  padding: 6px 8px;
+  font: inherit;
+}
+.udb-trigger-year-prompt button {
+  border: none;
+  border-radius: 6px;
+  padding: 6px 10px;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+.udb-trigger-year-prompt button.ok {
+  background: #e50914;
+  color: #fff;
+}
+.udb-trigger-year-prompt button.ok:hover { background: #ff2b36; }
+.udb-trigger-year-prompt button.cancel {
+  background: #333;
+  color: #ddd;
+}
+.udb-trigger-year-prompt button.cancel:hover { background: #444; }

@@ -24,8 +24,19 @@ class BaseClient():
     Base Client Implementation for Site-specific clients
     '''
     def __init__(self, request_timeout=30, session=None):
-        # create a requests session and use across to re-use cookies
-        self.req_session = session if session else requests.Session()
+        # create a requests session and use across to re-use cookies.
+        # If curl_cffi is installed, prefer its impersonating session so
+        # Cloudflare-fronted APIs (e.g. kisskh) don't 429/403 us.
+        if session is not None:
+            self.req_session = session
+        else:
+            try:
+                from curl_cffi import requests as cffi_requests
+                self.req_session = cffi_requests.Session(impersonate="chrome124")
+                self._using_cffi = True
+            except Exception:
+                self.req_session = requests.Session()
+                self._using_cffi = False
         self.request_timeout = request_timeout
         try:
             self.hls_size_accuracy
@@ -86,6 +97,20 @@ class BaseClient():
         - return_type - valid options are text/json/bytes/raw
         - silent: boolean - suppress logging errors
         '''
+        # Optional throttle between requests to the same host to avoid Cloudflare
+        # rate-limits when scraping many endpoints in a burst. Controlled by
+        # UDB_THROTTLE_SECONDS env var (default 0 = disabled).
+        try:
+            _throttle = float(os.environ.get('UDB_THROTTLE_SECONDS', '0'))
+        except (TypeError, ValueError):
+            _throttle = 0.0
+        if _throttle > 0:
+            import time as _time
+            _last = getattr(self, '_last_req_ts', 0.0)
+            _wait = _throttle - (_time.time() - _last)
+            if _wait > 0:
+                _time.sleep(_wait)
+            self._last_req_ts = _time.time()
         def _conditional_logger(silent, message):
             if silent:
                 self.logger.warning(f'[Suppressed error] {message}')
@@ -97,6 +122,15 @@ class BaseClient():
         if referer: header.update({'referer': referer})
         if return_type.lower() == 'json': header.update({'Accept': 'application/json'})
         if extra_headers: header.update(extra_headers)
+
+        # When using curl_cffi, a static UA stomps on the Chrome-impersonated
+        # headers (sec-ch-ua, accept-language, etc.) that Cloudflare keys on.
+        # Drop our UA so curl_cffi uses its impersonation defaults and only
+        # layer on semantic additions (referer, accept).
+        if getattr(self, '_using_cffi', False):
+            header.pop('User-Agent', None)
+            header.pop('Accept-Encoding', None)
+            header.pop('Connection', None)
         # self.logger.debug(f'Cookies before request: {self.req_session.cookies.get_dict()}')
         if request_type == 'get':
             response = self.req_session.get(url, timeout=self.request_timeout, headers=header, cookies=cookies)

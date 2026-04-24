@@ -1,0 +1,27 @@
+# Config override for running UDB inside the trigger container.
+# The server mounts /downloads to the host's Plex TV library.
+
+Anime (Animepahe):
+  download_dir: /downloads
+  request_timeout: 30
+  alternate_resolution_selector: 'lowest'
+
+Anime, Drama, Movies & TV Shows (Kisskh):
+  download_dir: /downloads
+  request_timeout: 30
+  alternate_resolution_selector: 'lowest'
+  base_url: 'https://kisskh.co/'
+
+DownloaderConfig:
+  download_dir: /downloads
+  temp_download_dir: auto
+  concurrency_per_file: auto
+  request_timeout: 30
+  max_parallel_downloads: 2
+
+LoggerConfig:
+  log_level: INFO
+  log_dir: /app/trigger/data/logs/udb
+  max_log_size_in_kb: 100
+  log_backup_count: 3
+  log_retention_days: 7

@@ -273,7 +273,14 @@ def batch_downloader(download_fn, links, dl_config, max_parallel_downloads):
 
     # show download status at the end, so that progress bars are not disturbed
     print("\033[K") # Clear to the end of line
-    width = os.get_terminal_size().columns
+    try:
+        width = os.get_terminal_size().columns
+    except OSError:
+        # No TTY attached (e.g. stdout redirected to a file when running
+        # under the trigger worker / CI / systemd). shutil honors COLUMNS
+        # and falls back to a fixed default, no ioctl involved.
+        import shutil
+        width = shutil.get_terminal_size((120, 40)).columns
     header_clr = PRINT_THEMES['header'] if not disable_colors else ''
     reset_clr = PRINT_THEMES['reset'] if not disable_colors else ''
 

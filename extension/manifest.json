@@ -1,0 +1,37 @@
+{
+  "manifest_version": 3,
+  "name": "UDB → Plex Trigger",
+  "version": "1.0.2",
+  "description": "Queue KissKh downloads straight to your Umbrel/Plex server.",
+  "permissions": ["notifications", "tabs"],
+  "host_permissions": [
+    "http://umbrel.local/*",
+    "http://umbrel.local:8787/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": [
+        "https://kisskh.co/*",
+        "https://kisskh.id/*",
+        "https://kisskh.me/*",
+        "https://kisskh.nl/*",
+        "https://kisskh.ovh/*",
+        "https://*.kisskh.co/*",
+        "https://*.kisskh.nl/*"
+      ],
+      "js": ["content.js"],
+      "css": ["content.css"],
+      "run_at": "document_idle"
+    }
+  ],
+  "action": {
+    "default_title": "UDB Trigger",
+    "default_popup": "popup.html"
+  },
+  "icons": {
+    "128": "icons/icon128.png"
+  }
+}

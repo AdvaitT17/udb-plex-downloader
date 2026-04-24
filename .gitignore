@@ -8,4 +8,12 @@ __pycache__
 # User-specific UDB files
 Clients/*.json
 dev_dump
-*.yaml
+# Personal local config; trigger/config_udb.container.yaml IS committed.
+config_udb.yaml
+config_udb.local.yaml
+# Python venv (local dev helper)
+udb/
+# Runtime state (SQLite queue, logs) — recoverable via scripts/backup.sh
+trigger/data/
+# Env file with the auth token
+.env

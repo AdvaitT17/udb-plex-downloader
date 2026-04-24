@@ -1,0 +1,43 @@
+# docker-compose for the UDB trigger service on Umbrel.
+#
+# Place this file at the repo root on the Umbrel box, then:
+#   UDB_TRIGGER_TOKEN=$(openssl rand -hex 16) docker compose up -d --build
+#
+# The /downloads volume is mounted at the path used by Plex.
+
+services:
+  udb-trigger:
+    build:
+      context: .
+      dockerfile: trigger/Dockerfile
+    container_name: udb-trigger
+    restart: unless-stopped
+    ports:
+      - "8787:8787"
+    environment:
+      UDB_TRIGGER_TOKEN: ${UDB_TRIGGER_TOKEN:?set UDB_TRIGGER_TOKEN in env}
+      UDB_CONFIG: /app/trigger/config_udb.container.yaml
+      # Sleep N seconds between each HTTP request. 0 disables throttling.
+      # kisskh rate-limits aggressively; 1.5s usually dodges it.
+      UDB_THROTTLE_SECONDS: "1.5"
+      # Local time-of-day (HH:MM) to run the daily watched-show rescan.
+      # Set to empty to disable auto-rescan.
+      UDB_RESCAN_AT: "04:15"
+      # Match local TZ so UDB_RESCAN_AT fires at the right wall-clock time.
+      TZ: "Asia/Kolkata"
+      # Optional: hit Plex to refresh the library after a successful download.
+      # UDB_PLEX_REFRESH_URL: "http://<plex-host>:32400/library/sections/<id>/refresh?X-Plex-Token=<token>"
+    volumes:
+      # Plex TV library — trigger writes directly here.
+      # Hardcoded absolute path (not ${HOME}) because `sudo docker compose up`
+      # resets $HOME to /root and the mount would silently point at an empty
+      # /root/umbrel/... dir instead of the real umbrel-user library.
+      - /home/umbrel/umbrel/home/Downloads/tvshows:/downloads
+      # Persist job queue + logs across restarts
+      - ./trigger/data:/app/trigger/data
+      # Bind-mount source so edits + `docker compose restart` pick them up
+      # without a full rebuild (only requirements/Dockerfile changes need build)
+      - ./trigger:/app/trigger
+      - ./udb.py:/app/udb.py:ro
+      - ./Clients:/app/Clients:ro
+      - ./Utils:/app/Utils:ro
