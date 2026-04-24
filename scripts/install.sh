@@ -21,7 +21,7 @@
 #   NEW_TOKEN     — set to a specific value to force a fresh token
 set -euo pipefail
 
-UDB_REPO="${UDB_REPO:-https://github.com/mahde10/udb.git}"
+UDB_REPO="${UDB_REPO:-https://github.com/AdvaitT17/udb-plex-downloader.git}"
 UDB_DIR="${UDB_DIR:-$HOME/udb}"
 UDB_BRANCH="${UDB_BRANCH:-main}"
 BACKUP_DIR="${BACKUP_DIR:-$HOME/umbrel/home/Downloads/udb-backups}"
