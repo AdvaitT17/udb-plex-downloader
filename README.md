@@ -1,125 +1,59 @@
-# UDB [Ultimate-Download-Bot]
+# udb-plex-downloader
 
-Welcome to the UDB, the Ultimate-Download-Bot for Anime, Drama, Movies & TV Shows! 🎉
+One-click KissKh → Umbrel → Plex pipeline. Click a button on a KissKh show page in Chrome, the episodes download directly onto your Umbrel server into the Plex library, and new episodes of ongoing shows auto-download daily.
 
-## Current Status (as on 2024-10-08)
-| S.No | Category           | Website                                   | Status |
-| :--: | :----------------- | :---------------------------------------: | :----: |
-|   1  | Anime              | [GogoAnime](https://anitaku.to/)          | Active (But no updates after Nov' 24, 2024) |
-|   2  | Anime              | [AnimePahe](https://animepahe.ru/)        | Active |
-|   3  | Drama              | [MyAsianTV](https://myasiantv.ac/)        | Inactive |
-|   4  | Drama              | [Asianbxkiun](https://asianbxkiun.pro/)   | Active (But no updates after Nov' 24, 2024) |
-|   5  | Movies & TV Shows  | [Vidsrc](https://vidsrc.to/)              | Support discontinued |
-|   6  | Movies & TV Shows  | [Superembed](https://streambucket.net/)   | Support discontinued |
-|   7  | Anime, Drama, Movies & TV Shows | [KissKh](https://kisskh.co/) | Active (But no multi-resolutions) |
+Built on top of [Prudhvi-pln/udb](https://github.com/Prudhvi-pln/udb) (the `udb.py` CLI downloader) with a FastAPI trigger service, a Chrome MV3 extension, and install/backup scripts tuned for Umbrel OS.
 
-## Insipiration
+## How it works
 
-It is a weekend and you found a good anime/series to binge-watch. But the effort of downloading all episodes (especially for series like One Piece 😅), the pain is unimaginable. _Ofcourse, you have an option to watch online, but what about people with poor unstable networks, or students with limited access to wifi_. So, this is created to help all such troubled souls. As Ikta Solorok once said: `Laziness is the mother of evolution`
+```
+  Chrome (Mac)                  Umbrel host                  Plex
+  ┌──────────────┐   HTTP    ┌──────────────────┐  writes  ┌──────────┐
+  │ Extension    │ ────────▶ │ trigger service  │ ───────▶ │ library  │
+  │ "Download to │  POST     │ (FastAPI +       │  mp4s    │ /tvshows │
+  │  Plex"       │  /jobs    │  sqlite + udb.py)│          └──────────┘
+  └──────────────┘           └──────────────────┘
+                                       │
+                                       │ daily rescan
+                                       ▼
+                              ongoing shows pick up
+                              new episodes automatically
+```
 
-## Overview
+## Components
 
-The UDB is a fantastic tool designed for all the anime, drama, series lovers out there. With just a few clicks in the command line, you can effortlessly download entire series, saving you the hassle of manually downloading each episode one by one.
+- **`trigger/`** — FastAPI service + SQLite job queue + embedded live dashboard at `http://umbrel.local:8787/dashboard`. Renames downloaded files to Plex-friendly `Show - s01eNN.mp4`, tracks "watches" for ongoing series, re-scans daily via APScheduler.
+- **`extension/`** — Chrome MV3 extension. Injects a *Download to Plex* button on KissKh pages, scrapes title/year/ongoing status, posts to the trigger. Notifications click-open the dashboard. Popup lists watches + Rescan now.
+- **`scripts/install.sh`** — one-shot bootstrap for a freshly-wiped Umbrel box. Clones the repo, restores the latest backup (queue + token) from the Plex-survival directory, writes `.env`, builds + starts the container, polls `/health`.
+- **`scripts/backup.sh`** — snapshots `.env` + `queue.sqlite` + recent logs to `~/umbrel/home/Downloads/udb-backups/` (survives Umbrel OS updates). `--cron` installs a systemd **user timer** (Umbrel OS has no cron) with `loginctl enable-linger` so it keeps firing after logout.
+- **`udb.py`, `Clients/`** — upstream CLI with small patches: `shutil.get_terminal_size()` fallback for headless runs, `curl_cffi` chrome124 impersonation + `UDB_THROTTLE_SECONDS` for Cloudflare.
 
-![udb demo](images/udb-demo.gif)
+## Quick start
 
-## Features
+On the Umbrel box:
 
-- **Batch Download:** Download complete anime series or drama shows or TV shows with a single command.
-- **Fast and Efficient:** The downloader is optimized for speed, allowing you to grab your favorite episodes in no time.
-- **Customizable Options:** Choose specific seasons, episodes, or ranges to download according to your preferences.
-- **Quality Selection:** Select the video quality that suits your needs.
-- **Auto-Retry:** If a download fails, the downloader automatically retries until successful.
-- **Informative Progress Bar:** Track the progress of your downloads with a visually appealing progress bar.
-- **Command Line Interface (CLI) Automation:** UDB provides robust support for CLI arguments, facilitating seamless automation of tasks.
-- **High-speed Downloader:** Optimized to offer best download experience.
-- **Ad-Free Experience:** UDB offers an ad-free downloading experience, ensuring uninterrupted access to your favorite anime, drama, movies, and TV series without any distractions.
+```bash
+curl -fsSL https://raw.githubusercontent.com/AdvaitT17/udb-plex-downloader/main/scripts/install.sh | bash
+bash ~/udb/scripts/backup.sh --cron   # daily 03:30 snapshots
+```
 
-## Supported OS
-- Windows
-- Linux
-- Android (Termux only)
+The installer prints the auth token — paste it into `extension/background.js` (`UDB_TRIGGER_TOKEN`) and load `extension/` as an unpacked extension in Chrome.
 
-## Requirements
+## Dashboard
 
-To use the UDB, make sure you have the following requirements met:
+`http://umbrel.local:8787/dashboard` — live job list with status badges, per-job Cancel / Delete / Log controls, one-click cleanup of finished jobs, and a "watches" panel for ongoing shows you want auto-updated.
 
-- Python 3.8 or higher
-- pip
-- Internet connection
-- ffmpeg
-  - Windows:
-    - download ffmpeg from [here](https://ffmpeg.org/download.html)
-    - add to Environment variables > PATH
-  - Linux (Ubuntu):
-    - sudo apt install -y ffmpeg
-  - Android (Termux):
-    - pkg install ffmpeg
+## Environment
 
-## Installation
+- `UDB_TRIGGER_TOKEN` — shared secret between extension and server (kept inline in `background.js`; rotated via `.env` on the host).
+- `UDB_RESCAN_AT` — daily rescan time, default `04:15`.
+- `TZ` — defaults to `Asia/Kolkata`.
+- `UDB_THROTTLE_SECONDS` — optional per-request delay in the Cloudflare-bypass client.
 
-1. Clone the repository:
+## Disaster recovery
 
-    ```
-    git clone https://github.com/Prudhvi-pln/udb.git
-    ```
+Umbrel OS updates wipe Docker state and `/home/umbrel` customizations but preserve `~/umbrel/home/Downloads/`. Snapshots live there, so re-running `install.sh` after a wipe restores the queue + auth token and the Chrome extension keeps working without changes.
 
-2. Navigate to the project directory:
+## Credit
 
-    ```
-    cd udb
-    ```
-
-3. Install the required dependencies:
-
-    ```
-    pip install -r requirements.txt
-    ```
-4. Edit the configuration in your favourite editor: __Make sure to set the download path__
-
-    ```
-    vi config_udb.yaml
-    ```
-
-5. You're all set! Start downloading your favorite series by running:
-
-    ```
-    python udb.py
-    ```
-
-## Usage
-
-UDB is super easy to use. Follow these steps:
-
-1. Launch your favorite command-line interface.
-2. Navigate to the project directory.
-3. Run the following command:
-
-   ```
-   python udb.py
-   ```
-
-4. Sit back, relax, and let the magic happen! The downloader will guide you through the process and download your selected series/movie.
-
-5. Run `python udb.py -h` for more information about the cli arguments
-
-## Contributing
-
-I welcome contributions from fellow anime and drama enthusiasts like you! If you have any ideas, improvements, or bug fixes, feel free to open an issue or submit a pull request. Let's make this downloader even more amazing together!
-
-## Acknowledgements
-
-I would like to express my gratitude to the creators and developers of the open-source libraries and tools used in this project. Without their contributions, this downloader would not be possible.
- - [animdl](https://github.com/justfoolingaround/animdl)
- - [dra-cla](https://github.com/CoolnsX/dra-cla/blob/main/dra-cla)
- - [vidsrc-to-resolver](https://github.com/Ciarands/vidsrc-to-resolver)
- - [vidplay-keys](https://github.com/KillerDogeEmpire/vidplay-keys)
- - [m3u8downloader](https://github.com/josephcappadona/m3u8downloader)
-
-## Known issues
- - Progress bar printing duplicate lines for same file
-   - This issue occurs due to ascii characters used and depends on the command line (Prefer Powershell in Windows)
-
----
-
-Start binge-watching your favorite movies / series like never before! Happy downloading! 🍿✨
+Core downloader: [Prudhvi-pln/udb](https://github.com/Prudhvi-pln/udb). Everything under `trigger/`, `extension/`, `scripts/`, and `docker-compose.yml` is this repo's addition.
