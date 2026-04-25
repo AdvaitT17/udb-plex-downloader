@@ -332,10 +332,17 @@ class Worker:
         if not name:
             return None
         year = payload.get("year")
-        candidates = []
+        candidates: list[Path] = []
         if year:
             candidates.append(download_root / f"{name} ({year})")
         candidates.append(download_root / name)
+        # Even when the payload had no year, udb may have written to
+        # "<name> (<year>)" because it learned the year from the search
+        # result. Glob for that case so the renamer doesn't silently miss.
+        if download_root.is_dir():
+            for p in sorted(download_root.glob(f"{name} (*)")):
+                if p.is_dir() and p not in candidates:
+                    candidates.append(p)
         return next((c for c in candidates if c.is_dir()), None)
 
     def _seed_skip_symlinks(
