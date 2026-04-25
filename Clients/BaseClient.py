@@ -157,6 +157,22 @@ class BaseClient():
             self.logger.warning(msg)
             raise Exception(msg)
 
+        elif response.status_code == 429:                   # rate-limited; honour Retry-After then retry
+            retry_after = 0.0
+            try:
+                retry_after = float(response.headers.get('Retry-After', '0') or 0)
+            except (TypeError, ValueError):
+                retry_after = 0.0
+            # Cap so a malicious / huge Retry-After can't hang the worker.
+            retry_after = min(retry_after, 30.0)
+            if retry_after > 0:
+                import time as _time
+                self.logger.warning(f'Rate-limited (429); sleeping {retry_after:.1f}s before retry')
+                _time.sleep(retry_after)
+            else:
+                self.logger.warning('Rate-limited (429); will back off and retry')
+            raise Exception(f'Failed with code: 429')
+
         elif response.status_code == 404:                   # raise exception if status code is 4xx
             msg = f'Failed with code: {response.status_code}. Page not found for {url}'
             self.logger.error(msg)

@@ -227,6 +227,14 @@ class Worker:
             if any(m in line for m in error_markers):
                 if error is None:
                     error = line.strip()
+                    # Friendlier message for the most common transient.
+                    if "Failed with code: 429" in error:
+                        error = (
+                            "Rate-limited by KissKh (HTTP 429). The host "
+                            "throttled us mid-fetch — wait a few minutes "
+                            "and re-queue. Bump UDB_THROTTLE_SECONDS in "
+                            ".env if this keeps happening."
+                        )
                 if exit_code == 0:
                     exit_code = 1
                 break
