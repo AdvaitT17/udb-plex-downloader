@@ -116,6 +116,32 @@ def search_and_select_series(predefined_search_input=None, predefined_year_input
                     option = idx
                     break
             colprint('predefined', f'\nSelected option based on predefined year [{predefined_year_input}]: {option}')
+        elif predefined_search_input is not None:
+            # Non-interactive mode (called from the trigger / CLI flags) and no
+            # year was provided. Avoid the interactive prompt by auto-picking:
+            #   1) the only result if there's just one,
+            #   2) the result whose title exactly matches the search keyword
+            #      (case-insensitive, ignoring surrounding double-quotes — the
+            #      upstream-recommended way to disambiguate same-named shows).
+            if len(search_results) == 1:
+                option = next(iter(search_results.keys()))
+                colprint('predefined', f'\nAuto-selected the only result: {option}')
+            else:
+                _norm = str(predefined_search_input).strip().strip('"').lower()
+                exact = [
+                    idx for idx, r in search_results.items()
+                    if str(r.get('title', '')).strip().lower() == _norm
+                ]
+                if len(exact) == 1:
+                    option = exact[0]
+                    colprint('predefined', f'\nAuto-selected by exact title match: {option}')
+                else:
+                    logger.error(
+                        f'Multiple matches for "{predefined_search_input}" and no year provided; '
+                        f'pass -y <year> to disambiguate. Candidates: '
+                        + ', '.join(f'{i}={search_results[i].get("title")} ({search_results[i].get("year")})' for i in search_results)
+                    )
+                    raise ExitException(0)
         else:
             option = colprint('user_input', "\nSelect one of the above: ", input_type='recurring', input_dtype='int', input_options=list(range(len(search_results)+1)), allow_empty_input=False)
 

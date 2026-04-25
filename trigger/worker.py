@@ -282,7 +282,14 @@ class Worker:
         name = payload.get("name")
         if not name:
             raise ValueError("payload.name is required")
-        cmd += ["-n", str(name)]
+        # Wrap in double quotes when no year is given so udb's exact-title
+        # auto-pick kicks in (upstream-recommended way to disambiguate when
+        # KissKh returns many keyword matches). With a year, the year already
+        # pins the match so quoting just narrows results unnecessarily.
+        search_name = str(name)
+        if not payload.get("year") and not (search_name.startswith('"') and search_name.endswith('"')):
+            search_name = f'"{search_name}"'
+        cmd += ["-n", search_name]
 
         if payload.get("year"):
             cmd += ["-y", str(int(payload["year"]))]

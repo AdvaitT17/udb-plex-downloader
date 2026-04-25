@@ -193,16 +193,11 @@ def health() -> dict:
 
 @app.post("/download", dependencies=[Depends(require_token)])
 def enqueue(req: DownloadRequest) -> dict:
-    # For KissKh, a keyword alone returns many matches across categories
-    # which drops udb into an interactive "Select one of the above:" prompt
-    # that we can't answer (stdin is DEVNULL in the worker). Require year
-    # unless the caller is pinning the match some other way (e.g. episodes
-    # + resolution rarely help — it's really year that disambiguates).
-    if req.series_type == 2 and req.year is None:
-        raise HTTPException(
-            status_code=400,
-            detail="year is required for KissKh (series_type=2) to avoid an interactive prompt",
-        )
+    # KissKh search returns many matches per keyword. udb auto-resolves when
+    # (a) year is provided, (b) there's only one match, or (c) one match's
+    # title is an exact (case-insensitive) hit on the keyword — which is why
+    # the extension wraps the title in double quotes. If none of those hold,
+    # udb errors out non-interactively rather than dropping into a prompt.
     payload = req.model_dump()
     # Strip the watch flag before passing to udb — it's a server-only concern.
     watch_flag = bool(payload.pop("watch", False))
@@ -223,11 +218,6 @@ def list_watches() -> dict:
 
 @app.post("/watches", dependencies=[Depends(require_token)])
 def add_watch(req: WatchRequest) -> dict:
-    if req.series_type == 2 and req.year is None:
-        raise HTTPException(
-            status_code=400,
-            detail="year is required for KissKh watches",
-        )
     watch_id = db.add_watch(req.model_dump())
     return {"watch_id": watch_id}
 

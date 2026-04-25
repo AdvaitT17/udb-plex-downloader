@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "UDB → Plex Trigger",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Queue KissKh downloads straight to your Umbrel/Plex server.",
   "permissions": ["notifications", "tabs"],
   "host_permissions": [

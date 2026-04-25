@@ -261,21 +261,15 @@
       return;
     }
 
-    // If we couldn't scrape a year, ask for it inline — submitting without a
-    // year to kisskh (which returns many matches per keyword) drops udb into
-    // an interactive "Select one of the above:" prompt and the job fails.
-    let year = title.year;
-    if (!year) {
-      setStatus("No year detected — asking…", "pending");
-      year = await askForYear(title.name);
-      if (!year) {
-        setStatus("✗ cancelled (year required)", "err");
-        return;
-      }
-    }
+    // Year is no longer required — the trigger wraps the title in double
+    // quotes so udb's exact-title auto-pick handles the common case. We still
+    // send the year if we managed to scrape one, since it's the only thing
+    // that disambiguates same-named dramas (very common in Asian shows).
+    const year = title.year || null;
 
     btn.disabled = true;
-    setStatus(`Queueing: ${title.name} (${year})…`, "pending");
+    const labelYear = year ? ` (${year})` : "";
+    setStatus(`Queueing: ${title.name}${labelYear}…`, "pending");
 
     const payload = {
       name: title.name,
