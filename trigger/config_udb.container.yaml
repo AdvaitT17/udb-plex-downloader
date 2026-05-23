@@ -11,6 +11,10 @@ Anime, Drama, Movies & TV Shows (Kisskh):
   request_timeout: 30
   alternate_resolution_selector: 'lowest'
   base_url: 'https://kisskh.co/'
+  # Only mux English subtitles into the mkv. Case-insensitive substring
+  # match, so labels like "English (CC)" still hit. Remove this line (or
+  # set to an empty list) to keep every language.
+  preferred_subtitle_languages: ['English']
 
 DownloaderConfig:
   download_dir: /downloads

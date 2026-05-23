@@ -23,6 +23,10 @@ class KissKhClient(BaseClient):
         self.selector_strategy = config.get('alternate_resolution_selector', 'lowest')
         self.hls_size_accuracy = config.get('hls_size_accuracy', 0)
         self.search_limit = config.get('search_limit', 5)
+        # Optional: only mux subtitles matching these language labels
+        # (case-insensitive substring). e.g. ['English'] skips Spanish,
+        # Indonesian, Thai, etc. None / empty = keep all (upstream behavior).
+        self.preferred_subtitle_languages = config.get('preferred_subtitle_languages') or None
         super().__init__(config.get('request_timeout', 30), session)
         self.logger.debug(f'KissKh Drama client initialized with {config = }')
         self.token_generation_js_code = None
@@ -221,6 +225,28 @@ class KissKhClient(BaseClient):
                     self.logger.debug('Fetching subtitles for the episode...')
                     subtitles = self._send_request(self.subtitles_url.format(id=str(episode.get('episodeId'))) + token, return_type='json')
                     subtitles = { sub['label']: sub['src'] for sub in subtitles }
+                    # Optional language filter — config can set
+                    # preferred_subtitle_languages: ['English'] to skip every
+                    # other track (faster, smaller mkv, Plex picks the right
+                    # one automatically). Matching is case-insensitive and
+                    # substring-based so labels like "English (CC)" still hit.
+                    preferred = getattr(self, 'preferred_subtitle_languages', None)
+                    if preferred:
+                        if isinstance(preferred, str):
+                            preferred = [preferred]
+                        wanted = [p.strip().lower() for p in preferred if str(p).strip()]
+                        if wanted:
+                            kept = {
+                                label: src for label, src in subtitles.items()
+                                if any(w in label.lower() for w in wanted)
+                            }
+                            dropped = [l for l in subtitles if l not in kept]
+                            if dropped:
+                                self.logger.debug(
+                                    f'Subtitle filter dropped: {dropped} '
+                                    f'(kept: {list(kept.keys())})'
+                                )
+                            subtitles = kept
                     self._update_udb_dict(episode.get('episode'), {'subtitles': subtitles})
                     # check if subtitles are encrypted and add decryption details to udb dict
                     # every subtitle can have it's own encryption type. So, check all subtitles for encryption and add decryption details to udb dict
