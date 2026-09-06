@@ -1,0 +1,39 @@
+# docker-compose for the UDB trigger service on HomeDock OS.
+#
+# Upload this file in Packager → Package Generator (with an icon) to create a
+# .hds package, then install "UDB Plex Downloader" from the App Store.
+# [[...]] placeholders are DevHooks — HomeDock OS fills them in at install time.
+#
+# The image is prebuilt by .github/workflows/docker-publish.yml; Packager
+# cannot build from source, so there is no `build:` block here.
+
+services:
+  udb-plex-downloader:
+    image: ghcr.io/advaitt17/udb-plex-downloader:latest
+    container_name: udb-plex-downloader
+    restart: unless-stopped
+    ports:
+      - "8787:8787"
+    environment:
+      # Auto-generated 16-char shared secret. After install, copy it from
+      # Control Hub → udb-plex-downloader → compose view into the Chrome
+      # extension's options page.
+      UDB_TRIGGER_TOKEN: "[[HD_RND_STR]]"
+      UDB_CONFIG: /app/trigger/config_udb.container.yaml
+      # Sleep N seconds between each HTTP request. 0 disables throttling.
+      # kisskh rate-limits aggressively; 1.5s usually dodges it.
+      UDB_THROTTLE_SECONDS: "1.5"
+      # Local time-of-day (HH:MM) to run the daily watched-show rescan.
+      # Set to empty to disable auto-rescan.
+      UDB_RESCAN_AT: "04:15"
+      # Match local TZ so UDB_RESCAN_AT fires at the right wall-clock time.
+      TZ: "Asia/Kolkata"
+      # Optional: hit Plex to refresh the library after a successful download.
+      # UDB_PLEX_REFRESH_URL: "http://[[HD_LOCAL_IP]]:32400/library/sections/<id>/refresh?X-Plex-Token=<token>"
+    volumes:
+      # Plex TV library — the trigger writes finished episodes here. This is
+      # the folder HomeDock's official Plex app mounts at /tv (its TV library).
+      # If your Plex compose mounts a different host path, match it here.
+      - "[[APP_MOUNT_POINT]]/plex/tvseries:/downloads"
+      # Job queue + logs, persisted in HomeDock's AppData for this app.
+      - "[[INSTALL_PATH]]/udb-plex-downloader/data:/app/trigger/data"
