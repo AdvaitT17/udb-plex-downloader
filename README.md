@@ -30,6 +30,17 @@ Built on top of [Prudhvi-pln/udb](https://github.com/Prudhvi-pln/udb) (the `udb.
 
 ## Quick start
 
+### HomeDock OS
+
+Apps on HomeDock OS install from `.hds` packages built by its **Packager**
+app out of a docker-compose file + icon + metadata. Use
+[homedock/docker-compose.yml](homedock/docker-compose.yml) (pulls the prebuilt
+image from GHCR, persists state in HomeDock AppData, auto-generates the auth
+token via the `[[HD_RND_STR]]` DevHook) and follow
+[homedock/README.md](homedock/README.md).
+
+### Umbrel
+
 On the Umbrel box:
 
 ```bash
