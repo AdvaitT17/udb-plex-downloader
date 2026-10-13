@@ -268,11 +268,24 @@ class BaseClient():
 
         _regex_list = lambda data, rgx, grp: [ url.group(grp) for url in re.finditer(rgx, data) ]
         resolutions = _regex_list(master_m3u8_data, r'RESOLUTION=(\d+x\d+)', 1)
-        resolution_names = _regex_list(master_m3u8_data, 'NAME="(.*)"', 1)
+        # anchor links/names to RESOLUTION= lines so #EXT-X-MEDIA audio tags don't match
+        resolution_links = _regex_list(master_m3u8_data, r'RESOLUTION=(\d+x\d+).*?\n(.*\.m3u8)', 2)
+        try:
+            resolution_names = _regex_list(master_m3u8_data, r'RESOLUTION=(.*),NAME="([0-9a-zA-Z]+)"', 2)
+        except:
+            resolution_names = []
         if len(resolution_names) == 0:
             resolution_names = [ res.lower().split('x')[-1] for res in resolutions ]
-        resolution_links = _regex_list(master_m3u8_data, '(.*)m3u8', 0)
-        self.logger.debug(f'Resolutions data: {resolutions = }, {resolution_names = }, {resolution_links = }')
+
+        # Some HLS have separate audio streams. Build audio group -> URI mapping
+        audio_map = { m.group(1): m.group(2) for m in re.finditer(r'GROUP-ID="([^"]+)".*?URI="([^"]+)"', master_m3u8_data) }
+        if audio_map:
+            audio_groups = _regex_list(master_m3u8_data, r'RESOLUTION=.*?AUDIO="([^"]+)"', 1)
+            audio_links = [ audio_map.get(group) for group in audio_groups ]
+            self.logger.debug(f'Audio streams data: {audio_map = }, {audio_groups = }, {audio_links = }')
+        else:
+            audio_links = [None] * len(resolution_links)
+        self.logger.debug(f'Resolutions data: {resolutions = }, {resolution_names = }, {resolution_links = }, {audio_links = }')
 
         if len(resolution_links) == 0:
             # check for original keyword in the link, or if '#EXT-X-ENDLIST' in m3u8 data
@@ -299,13 +312,15 @@ class BaseClient():
         temp_link = self._normalize_url(resolution_links[0], base_url) if resolution_links else master_m3u8_link
         duration = pretty_time(self._get_video_metadata(temp_link, 'hls', referer)[0])
 
-        for _res, _pixels, _link in zip(resolution_names, resolutions, resolution_links):
+        for _res, _pixels, _link, _audio_link in zip(resolution_names, resolutions, resolution_links, audio_links):
             # prepend base url if it is relative url
             m3u8_link = self._normalize_url(_link, base_url)
+            audio_link = self._normalize_url(_audio_link, base_url) if _audio_link else None
             m3u8_links[_res.replace('p','')] = {
                 'resolution_size': _pixels,
                 'downloadLink': m3u8_link,
                 'downloadType': 'hls',
+                'audioLink': audio_link,
                 'duration': duration
             }
             # get approx download size and add file size if available
@@ -639,6 +654,9 @@ class BaseClient():
 
                     # add download link and it's type against episode
                     self._update_udb_dict(ep, {'episodeName': ep_name, 'downloadLink': ep_link, 'downloadType': link_type})
+                    # separate audio stream, if the master m3u8 declared one for this resolution
+                    if res_dict.get('audioLink'):
+                        self._update_udb_dict(ep, {'audio': res_dict['audioLink']})
                     self.logger.debug(f'{info} Link found [{ep_link}]')
                     self._colprint('results', f'{info} Link found [{ep_link}]')
 
