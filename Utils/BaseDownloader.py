@@ -32,6 +32,7 @@ class BaseDownloader():
         self.request_timeout = dl_config.get('request_timeout', 30)
         self.series_type = ep_details.get('type', 'series')
         self.subtitles = ep_details.get('subtitles', {})
+        self.audio = ep_details.get('audio')
         # special case for encrypted subtitles in kisskh client
         self.encrypted_subs_details = ep_details.get('encrypted_subs_details', {})
         self.thread_name_prefix = 'udb-mp4-'
